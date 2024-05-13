@@ -41,9 +41,9 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  if (!loaded) {
-    return null;
-  }
+  // if (!loaded) {
+  //   return null;
+  // }
 
   const [value, setValue] = useState("DEFAULT");
 
