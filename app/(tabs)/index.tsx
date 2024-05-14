@@ -24,12 +24,13 @@ import { useThemeColor } from "@/hooks/useThemeColor";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 import { BleManager } from "react-native-ble-plx";
-
-export const manager = new BleManager();
+import React from "react";
 
 export default function HomeScreen() {
   const { value, setValue } = useContext(TestContext);
   const [color, setColor] = useState(toHsv("green"));
+
+  const manager = new BleManager();
 
   function onColorChange(color: HsvColor) {
     setColor(color);
@@ -82,6 +83,7 @@ export default function HomeScreen() {
     return false;
   };
 
+  
   return (
     <SafeAreaView
       style={
@@ -102,7 +104,7 @@ export default function HomeScreen() {
         />
       </View>
       <Button
-        onPress={handleSendData}
+        onPress={requestBluetoothPermission}
         title="Set your mood."
         color="#0080ff"
         accessibilityLabel="Learn more about this purple button"
