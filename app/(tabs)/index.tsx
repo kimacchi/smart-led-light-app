@@ -1,4 +1,12 @@
-import { Image, StyleSheet, Platform, TextInput, View } from "react-native";
+import {
+  Image,
+  StyleSheet,
+  Platform,
+  TextInput,
+  View,
+  Text,
+  Button,
+} from "react-native";
 
 import { HelloWave } from "@/components/HelloWave";
 import ParallaxScrollView from "@/components/ParallaxScrollView";
@@ -11,6 +19,8 @@ import { TriangleColorPicker, toHsv } from "react-native-color-picker";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { HsvColor } from "react-native-color-picker/dist/typeHelpers";
+import { useThemeColor } from "@/hooks/useThemeColor";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 export default function HomeScreen() {
   const { value, setValue } = useContext(TestContext);
@@ -19,26 +29,22 @@ export default function HomeScreen() {
   function onColorChange(color: HsvColor) {
     setColor(color);
   }
+
+  const colorScheme = useColorScheme();
+
+  const handleSendData = () => {};
+
+  console.log(colorScheme);
   return (
-    <SafeAreaView>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">
-          Welcome! The Current Value Is: {value}!
-        </ThemedText>
-        {/* <HelloWave /> Bu component animasyon örneği içeriyor.  */}
-      </ThemedView>
-      <TextInput
-        style={{
-          padding: 8,
-          margin: 8,
-          borderWidth: 1,
-          borderColor: "gray",
-          color: "white",
-        }}
-        value={value}
-        onChangeText={setValue}
-      />
-      <View style={{ height: 300, width: 300, backgroundColor: "black" }}>
+    <SafeAreaView
+      style={
+        colorScheme == "light" ? lightStyle.container : darkStyle.container
+      }
+    >
+      <Text style={colorScheme == "light" ? lightStyle.text : darkStyle.text}>
+        Select your own ambiance.
+      </Text>
+      <View style={{ height: 300, width: 300 }}>
         <TriangleColorPicker
           // oldColor="purple"
           color={color}
@@ -48,6 +54,12 @@ export default function HomeScreen() {
           style={{ flex: 1 }}
         />
       </View>
+      <Button
+        onPress={handleSendData}
+        title="Set your mood."
+        color="#0080ff"
+        accessibilityLabel="Learn more about this purple button"
+      />
     </SafeAreaView>
   );
 }
@@ -68,5 +80,42 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     position: "absolute",
+  },
+});
+
+const lightStyle = StyleSheet.create({
+  container: {
+    display: "flex",
+    alignItems: "center",
+    flex: 1,
+    flexGrow: 2,
+    backgroundColor: "#f0fcfc",
+    gap: 24,
+  },
+  text: {
+    fontSize: 48,
+    color: "#424242",
+    textAlign: "center",
+    fontWeight: "800",
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+});
+const darkStyle = StyleSheet.create({
+  container: {
+    display: "flex",
+    alignItems: "center",
+    flex: 1,
+    flexGrow: 2,
+    backgroundColor: "#424242",
+    gap: 24,
+  },
+  text: {
+    fontSize: 48,
+    color: "#f0fcfc",
+    textAlign: "center",
+    fontWeight: "800",
+    paddingTop: 16,
+    paddingBottom: 16,
   },
 });
