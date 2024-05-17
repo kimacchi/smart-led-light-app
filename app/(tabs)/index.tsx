@@ -7,6 +7,8 @@ import {
   Text,
   Button,
   PermissionsAndroid,
+  Modal,
+  FlatList,
 } from "react-native";
 
 import { HelloWave } from "@/components/HelloWave";
@@ -23,12 +25,14 @@ import { HsvColor } from "react-native-color-picker/dist/typeHelpers";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
-import { BleManager } from "react-native-ble-plx";
+import { BleManager, Device } from "react-native-ble-plx";
 import React from "react";
 
 export default function HomeScreen() {
   const { value, setValue } = useContext(TestContext);
   const [color, setColor] = useState(toHsv("green"));
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const manager = new BleManager();
 
@@ -83,7 +87,37 @@ export default function HomeScreen() {
     return false;
   };
 
-  
+  const scanForDevices = async () => {
+    try {
+      setModalVisible(true);
+      manager.startDeviceScan(null, null, (error, scannedDevice) => {
+        if (error) {
+          console.error("Error scanning devices:", error);
+          return;
+        }
+        setDevices((devices) => {
+          const existingDeviceIndex = devices.findIndex(
+            (device) => device.id === scannedDevice!.id
+          );
+          if (existingDeviceIndex !== -1) {
+            devices[existingDeviceIndex] = scannedDevice!;
+            return [...devices];
+          } else {
+            return [...devices, scannedDevice!];
+          }
+        });
+      });
+    } catch (error) {
+      console.error("Error starting device scan:", error);
+    }
+  };
+
+  const renderItem = ({ item }: { item: Device }) => (
+    <View>
+      <Text>{item.name ? item.name : item.id}</Text>
+    </View>
+  );
+
   return (
     <SafeAreaView
       style={
@@ -109,6 +143,14 @@ export default function HomeScreen() {
         color="#0080ff"
         accessibilityLabel="Learn more about this purple button"
       />
+      <View>
+        <Button title="Scan Devices" onPress={scanForDevices} />
+        <FlatList
+          data={devices}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id || ""}
+        />
+      </View>
     </SafeAreaView>
   );
 }
