@@ -9,6 +9,7 @@ import {
   PermissionsAndroid,
   Modal,
   FlatList,
+  Pressable,
 } from "react-native";
 
 import { HelloWave } from "@/components/HelloWave";
@@ -25,7 +26,7 @@ import { HsvColor } from "react-native-color-picker/dist/typeHelpers";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
-import { BleManager, Device } from "react-native-ble-plx";
+import { BleManager, Characteristic, Device } from "react-native-ble-plx";
 import React from "react";
 
 export default function HomeScreen() {
@@ -33,7 +34,8 @@ export default function HomeScreen() {
   const [color, setColor] = useState(toHsv("green"));
   const [devices, setDevices] = useState<Device[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-
+  const [displayText, setDisplayText] = useState("");
+  const [connectedDevice, setConnectedDevice] = useState<Device>();
   const manager = new BleManager();
 
   function onColorChange(color: HsvColor) {
@@ -114,9 +116,64 @@ export default function HomeScreen() {
 
   const renderItem = ({ item }: { item: Device }) => (
     <View>
-      <Text>{item.name ? item.name : item.id}</Text>
+      <Pressable
+        onPress={() => {
+          connectDevice(item);
+        }}
+      >
+        <Text
+          style={
+            colorScheme == "light" ? lightStyle.modalText : darkStyle.modalText
+          }
+        >
+          {item.name ? item.name : item.id}
+        </Text>
+        <Button
+          title="Connect"
+          onPress={() => {
+            connectDevice(item);
+          }}
+        ></Button>
+      </Pressable>
     </View>
   );
+
+  const handleDisconnected = async (error: Error | null, device: Device) => {
+    if (error) {
+      console.error("Bağlantı kesildi:", error);
+      // Yeniden bağlanma işlemi
+      try {
+        await device.connect(); // veya connectToDevice fonksiyonunu tekrar çağırın
+        console.log("Yeniden bağlandı!");
+      } catch (error) {
+        console.error("Yeniden bağlanma hatası:", error);
+      }
+    }
+  };
+
+  const connectDevice = (device: Device) => {
+    setModalVisible(false);
+    manager.stopDeviceScan();
+    manager
+      .connectToDevice(device.id)
+      .then(async (device) => {
+        const temp = await device.discoverAllServicesAndCharacteristics();
+        manager.stopDeviceScan();
+        if (await temp.isConnected()) {
+          setDisplayText(`Device connected\n with ${device.name}`);
+        }
+        setConnectedDevice(device);
+        setDevices([]);
+        while (!temp.isConnected()) {
+          console.log(await temp.isConnected());
+          device.onDisconnected((error) => handleDisconnected(error, device));
+        }
+        console.log("cihaz adi:", device.name);
+      })
+      .catch((e) => {
+        console.log("error", e);
+      });
+  };
 
   return (
     <SafeAreaView
@@ -145,12 +202,31 @@ export default function HomeScreen() {
       />
       <View>
         <Button title="Scan Devices" onPress={scanForDevices} />
-        <FlatList
-          data={devices}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id || ""}
-        />
       </View>
+      <Modal animationType="slide" transparent={true} visible={modalVisible}>
+        <View
+          style={
+            colorScheme == "light"
+              ? lightStyle.modalContainer
+              : darkStyle.modalContainer
+          }
+        >
+          <View
+            style={
+              colorScheme == "light"
+                ? lightStyle.modalContent
+                : darkStyle.modalContent
+            }
+          >
+            <FlatList
+              data={devices}
+              renderItem={renderItem}
+              keyExtractor={(item) => item.id || ""}
+            />
+          </View>
+        </View>
+      </Modal>
+      <Text>{displayText}</Text>
     </SafeAreaView>
   );
 }
@@ -191,6 +267,26 @@ const lightStyle = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 16,
   },
+  modalContainer: {
+    height: "100%",
+    width: "100%",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    height: "75%",
+    width: "90%",
+    backgroundColor: "black",
+    borderTopRightRadius: 18,
+    borderTopLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    borderBottomLeftRadius: 18,
+    position: "absolute",
+    bottom: "7%",
+    left: "5%",
+  },
+  modalText: {
+    color: "white",
+  },
 });
 const darkStyle = StyleSheet.create({
   container: {
@@ -208,5 +304,22 @@ const darkStyle = StyleSheet.create({
     fontWeight: "800",
     paddingTop: 16,
     paddingBottom: 16,
+  },
+  modalContainer: {
+    height: "100%",
+    width: "100%",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    height: "25%",
+    width: "100%",
+    backgroundColor: "#25292e",
+    borderTopRightRadius: 18,
+    borderTopLeftRadius: 18,
+    position: "absolute",
+    bottom: 0,
+  },
+  modalText: {
+    color: "white",
   },
 });
