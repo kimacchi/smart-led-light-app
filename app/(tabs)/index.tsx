@@ -36,6 +36,7 @@ export default function HomeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [displayText, setDisplayText] = useState("");
   const [connectedDevice, setConnectedDevice] = useState<Device>();
+
   const manager = new BleManager();
 
   function onColorChange(color: HsvColor) {
@@ -116,59 +117,41 @@ export default function HomeScreen() {
 
   const renderItem = ({ item }: { item: Device }) => (
     <View>
-      <Pressable
+      <Text
+        style={
+          colorScheme == "light" ? lightStyle.modalText : darkStyle.modalText
+        }
+      >
+        {item.name ? item.name : item.id}
+      </Text>
+      <Button
+        title="Connect"
         onPress={() => {
           connectDevice(item);
         }}
-      >
-        <Text
-          style={
-            colorScheme == "light" ? lightStyle.modalText : darkStyle.modalText
-          }
-        >
-          {item.name ? item.name : item.id}
-        </Text>
-        <Button
-          title="Connect"
-          onPress={() => {
-            connectDevice(item);
-          }}
-        ></Button>
-      </Pressable>
+      ></Button>
     </View>
   );
-
-  const handleDisconnected = async (error: Error | null, device: Device) => {
-    if (error) {
-      console.error("Bağlantı kesildi:", error);
-      // Yeniden bağlanma işlemi
-      try {
-        await device.connect(); // veya connectToDevice fonksiyonunu tekrar çağırın
-        console.log("Yeniden bağlandı!");
-      } catch (error) {
-        console.error("Yeniden bağlanma hatası:", error);
-      }
-    }
-  };
 
   const connectDevice = (device: Device) => {
     setModalVisible(false);
     manager.stopDeviceScan();
-    manager
-      .connectToDevice(device.id)
+    // manager
+    //   .connectToDevice(device.id)
+    device
+      .connect()
       .then(async (device) => {
         const temp = await device.discoverAllServicesAndCharacteristics();
-        manager.stopDeviceScan();
-        if (await temp.isConnected()) {
-          setDisplayText(`Device connected\n with ${device.name}`);
-        }
+        //manager.stopDeviceScan();
+        // if (await temp.isConnected()) {
+        //   setDisplayText(`Device connected\n with ${device.name}`);
+        // }
         setConnectedDevice(device);
         setDevices([]);
         while (!temp.isConnected()) {
           console.log(await temp.isConnected());
-          device.onDisconnected((error) => handleDisconnected(error, device));
         }
-        console.log("cihaz adi:", device.name);
+        console.log("cihaz adi:", connectedDevice?.name);
       })
       .catch((e) => {
         console.log("error", e);
@@ -223,6 +206,12 @@ export default function HomeScreen() {
               renderItem={renderItem}
               keyExtractor={(item) => item.id || ""}
             />
+            <Button
+              title="Close"
+              onPress={() => {
+                setModalVisible(false);
+              }}
+            ></Button>
           </View>
         </View>
       </Modal>
