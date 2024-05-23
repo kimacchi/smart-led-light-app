@@ -28,6 +28,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 
 import { BleManager, Characteristic, Device } from "react-native-ble-plx";
 import React from "react";
+import useBLE from "@/useBLE";
 
 export default function HomeScreen() {
   const { value, setValue } = useContext(TestContext);
@@ -35,9 +36,28 @@ export default function HomeScreen() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [displayText, setDisplayText] = useState("");
-  const [connectedDevice, setConnectedDevice] = useState<Device>();
+  // const [connectedDevice, setConnectedDevice] = useState<Device>();
 
   const manager = new BleManager();
+  //////////////BURDAN BASLADİM///////////////////////////////////////
+  const {
+    requestPermissions,
+    scanForPeripherals,
+    allDevices,
+    connectToDevice,
+    connectedDevice,
+    // heartRate,
+    // disconnectFromDevice,
+  } = useBLE();
+
+  const scanForDevices2 = async () => {
+    const isPermissionsEnabled = await requestPermissions();
+    setModalVisible(true);
+    if (isPermissionsEnabled) {
+      scanForPeripherals();
+    }
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////
 
   function onColorChange(color: HsvColor) {
     setColor(color);
@@ -93,23 +113,26 @@ export default function HomeScreen() {
   const scanForDevices = async () => {
     try {
       setModalVisible(true);
-      manager.startDeviceScan(null, null, (error, scannedDevice) => {
-        if (error) {
-          console.error("Error scanning devices:", error);
-          return;
-        }
-        setDevices((devices) => {
-          const existingDeviceIndex = devices.findIndex(
-            (device) => device.id === scannedDevice!.id
-          );
-          if (existingDeviceIndex !== -1) {
-            devices[existingDeviceIndex] = scannedDevice!;
-            return [...devices];
-          } else {
-            return [...devices, scannedDevice!];
+      const isPermissionsEnabled = await requestPermissions();
+      if (isPermissionsEnabled) {
+        manager.startDeviceScan(null, null, (error, scannedDevice) => {
+          if (error) {
+            console.error("Error scanning devices:", error);
+            return;
           }
+          setDevices((devices) => {
+            const existingDeviceIndex = devices.findIndex(
+              (device) => device.id === scannedDevice!.id
+            );
+            if (existingDeviceIndex !== -1) {
+              devices[existingDeviceIndex] = scannedDevice!;
+              return [...devices];
+            } else {
+              return [...devices, scannedDevice!];
+            }
+          });
         });
-      });
+      }
     } catch (error) {
       console.error("Error starting device scan:", error);
     }
@@ -124,12 +147,7 @@ export default function HomeScreen() {
       >
         {item.name ? item.name : item.id}
       </Text>
-      <Button
-        title="Connect"
-        onPress={() => {
-          connectDevice(item);
-        }}
-      ></Button>
+      <Button title="Connect" onPress={() => connectToDevice(item)}></Button>
     </View>
   );
 
@@ -146,7 +164,7 @@ export default function HomeScreen() {
         // if (await temp.isConnected()) {
         //   setDisplayText(`Device connected\n with ${device.name}`);
         // }
-        setConnectedDevice(device);
+        //setConnectedDevice(device);
         setDevices([]);
         while (!temp.isConnected()) {
           console.log(await temp.isConnected());
@@ -184,7 +202,7 @@ export default function HomeScreen() {
         accessibilityLabel="Learn more about this purple button"
       />
       <View>
-        <Button title="Scan Devices" onPress={scanForDevices} />
+        <Button title="Scan Devices" onPress={scanForDevices2} />
       </View>
       <Modal animationType="slide" transparent={true} visible={modalVisible}>
         <View
@@ -202,7 +220,7 @@ export default function HomeScreen() {
             }
           >
             <FlatList
-              data={devices}
+              data={allDevices}
               renderItem={renderItem}
               keyExtractor={(item) => item.id || ""}
             />
